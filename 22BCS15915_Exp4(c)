@@ -1,0 +1,78 @@
+import java.util.HashSet;
+import java.util.Scanner;
+import java.util.Set;
+
+class SeatBookingSystem {
+    private final Set<Integer> bookedSeats = new HashSet<>();
+    private final int totalSeats;
+
+    public SeatBookingSystem(int totalSeats) {
+        this.totalSeats = totalSeats;
+    }
+
+    public synchronized boolean bookSeat(int seatNumber, String threadName) {
+        if (seatNumber < 1 || seatNumber > totalSeats) {
+            System.out.println(threadName + ": Invalid seat number.");
+            return false;
+        }
+
+        if (bookedSeats.contains(seatNumber)) {
+            System.out.println(threadName + ": Seat " + seatNumber + " is already booked.");
+            return false;
+        }
+
+        bookedSeats.add(seatNumber);
+        System.out.println(threadName + ": Seat " + seatNumber + " booked successfully.");
+        return true;
+    }
+}
+
+class BookingThread extends Thread {
+    private final SeatBookingSystem bookingSystem;
+    private final int seatNumber;
+
+    public BookingThread(SeatBookingSystem bookingSystem, int seatNumber, String name) {
+        super(name);
+        this.bookingSystem = bookingSystem;
+        this.seatNumber = seatNumber;
+    }
+
+    @Override
+    public void run() {
+        bookingSystem.bookSeat(seatNumber, getName());
+    }
+}
+
+public class TicketBooking {
+
+    public static void main(String[] args) {
+        SeatBookingSystem bookingSystem = new SeatBookingSystem(10); // 10 seats
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Enter seat number for VIP booking (1-10):");
+        int vipSeat = scanner.nextInt();
+        scanner.nextLine(); // Consume newline;
+
+        BookingThread vipThread = new BookingThread(bookingSystem, vipSeat, "VIP Booking");
+        vipThread.setPriority(Thread.MAX_PRIORITY);
+
+        System.out.println("Enter seat number for Regular booking (1-10):");
+        int regularSeat = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        BookingThread regularThread = new BookingThread(bookingSystem, regularSeat, "Regular Booking");
+        regularThread.setPriority(Thread.NORM_PRIORITY);
+
+        vipThread.start();
+        regularThread.start();
+
+        try {
+            vipThread.join();
+            regularThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Booking process complete.");
+        scanner.close();
+    }
+}
